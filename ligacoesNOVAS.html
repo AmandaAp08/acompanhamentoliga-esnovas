@@ -31,66 +31,80 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; height: 48px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000; }
-  .logo { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; letter-spacing: -0.5px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 10px; height: 48px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; z-index: 1000; }
+  .logo { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; }
   .logo span { color: var(--blue-glow); }
   header .spacer { flex: 1; }
 
-  .hdr-counters { display: flex; align-items: center; gap: 12px; font-size: 12px; }
-  .hdr-count { display: flex; align-items: center; gap: 5px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .hdr-counters { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .hdr-count { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-family: 'Space Mono', monospace; white-space: nowrap; }
   .hdr-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-  .hdr-actions { display: flex; align-items: center; gap: 8px; }
-  .export-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+  .hdr-actions { display: flex; align-items: center; gap: 6px; }
+  .export-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: var(--radius); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
   .export-btn:hover { background: var(--border); }
+
+  .toggle-sidebar-btn { background: var(--blue); border: none; color: #fff; width: 32px; height: 32px; border-radius: var(--radius); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .toggle-sidebar-btn:hover { opacity: 0.85; }
 
   .main { flex: 1; display: flex; overflow: hidden; position: relative; }
 
-  /* ---- MAP ---- */
-  #map { flex: 1; }
-  .import-btn { position: absolute; top: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: background 0.2s; }
+  #map { flex: 1; min-width: 0; }
+  .import-btn { position: absolute; top: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: background 0.2s; }
   .import-btn:hover { background: var(--surface2); }
-  .sync-indicator { position: absolute; bottom: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .sync-indicator { position: absolute; bottom: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; font-size: 10px; font-family: 'Space Mono', monospace; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); flex-shrink: 0; }
   .dot.green { background: var(--green-glow); animation: pulse 2s infinite; }
   .dot.yellow { background: var(--yellow-glow); animation: pulse 1s infinite; }
   .dot.red { background: var(--red-glow); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* ---- PAINEL LATERAL (lista) ---- */
-  .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; transition: width 0.25s ease, opacity 0.25s ease; }
+  .sidebar.hidden { width: 0; opacity: 0; pointer-events: none; }
 
-  /* topo da sidebar com título + contadores */
   .sidebar-top { padding: 10px 12px 8px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-  .sidebar-title { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+  .sidebar-title { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; }
   .sidebar-counters { display: flex; gap: 14px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text-muted); }
-  .sc-item { display: flex; align-items: center; gap: 4px; }
 
-  /* busca */
   .search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .search-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 7px 11px; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
   .search-input:focus { border-color: var(--blue); }
   .search-input::placeholder { color: var(--text-muted); }
 
-  /* filtros em botões */
   .filter-tabs { display: flex; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
   .filter-tabs::-webkit-scrollbar { display: none; }
   .ftab { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); white-space: nowrap; transition: all 0.15s; }
   .ftab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
   .ftab:hover:not(.active) { border-color: var(--text-muted); color: var(--text); }
 
-  /* total */
-  .total-bar { padding: 5px 12px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-muted); flex-shrink: 0; font-family: 'Space Mono', monospace; }
+  .mass-bar { display: none; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; flex-direction: column; gap: 6px; }
+  .mass-bar.visible { display: flex; }
+  .mass-bar-title { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .mass-bar-btns { display: flex; gap: 5px; }
+  .mass-btn { flex: 1; padding: 6px 4px; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 700; cursor: pointer; }
+  .mass-btn-green { background: var(--green); color: #fff; }
+  .mass-btn-blue { background: var(--blue); color: #fff; }
+  .mass-btn-cancel { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+  .mass-btn:hover { opacity: 0.85; }
 
-  /* lista */
+  .total-bar { padding: 5px 12px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-muted); flex-shrink: 0; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; align-items: center; }
+  .mass-toggle { font-size: 10px; color: var(--blue-glow); cursor: pointer; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,166,255,0.3); background: rgba(88,166,255,0.08); white-space: nowrap; }
+  .mass-toggle:hover { background: rgba(88,166,255,0.15); }
+
   .trafo-list { flex: 1; overflow-y: auto; }
   .trafo-list::-webkit-scrollbar { width: 4px; }
-  .trafo-list::-webkit-scrollbar-track { background: transparent; }
   .trafo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
   .trafo-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid rgba(48,54,61,0.5); cursor: pointer; transition: background 0.15s; }
   .trafo-row:hover { background: var(--surface2); }
   .trafo-row.selected { background: var(--surface2); border-left: 3px solid var(--blue-glow); padding-left: 9px; }
+  .trafo-row.checked { background: rgba(31,111,235,0.1); }
+
+  .row-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); background: var(--surface2); flex-shrink: 0; display: none; align-items: center; justify-content: center; cursor: pointer; }
+  .row-check.visible { display: flex; }
+  .row-check.ticked { background: var(--blue); border-color: var(--blue); }
+  .row-check.ticked::after { content: '✓'; color: #fff; font-size: 10px; line-height: 1; }
+
   .row-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
   .row-info { flex: 1; min-width: 0; }
   .row-id { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
@@ -101,24 +115,22 @@
   .rb-instalado { background: #0d1a2a; color: var(--blue-glow); border: 1px solid var(--blue); }
   .rb-pendente { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 
-  /* barra de progresso de instalação */
   .progress-bar-wrap { padding: 8px 12px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
   .pb-label { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; margin-bottom: 4px; display: flex; justify-content: space-between; }
   .pb-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
   .pb-fill { height: 100%; background: var(--green-glow); border-radius: 2px; transition: width 0.4s; }
 
-  /* painel de ação — aparece quando clica no trafo */
   .action-panel { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
   .action-panel-inner { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
   .ap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-  .ap-id { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; }
-  .ap-close { font-size: 16px; color: var(--text-muted); cursor: pointer; line-height: 1; }
+  .ap-id { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; }
+  .ap-close { font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 2px 4px; }
   .ap-close:hover { color: var(--text); }
-  .ap-obs { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 6px 8px; resize: none; min-height: 48px; outline: none; }
+  .ap-obs { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 6px 8px; resize: none; min-height: 44px; outline: none; }
   .ap-obs:focus { border-color: var(--blue); }
   .ap-obs:disabled { opacity: 0.4; }
   .ap-btns { display: flex; gap: 5px; }
-  .ap-btn { flex: 1; padding: 7px 6px; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 700; cursor: pointer; }
+  .ap-btn { flex: 1; padding: 7px 4px; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 700; cursor: pointer; }
   .ap-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .ap-btn-green { background: var(--green); color: #fff; }
   .ap-btn-red { background: var(--red); color: #fff; }
@@ -148,17 +160,17 @@
 <header>
   <div class="logo">Ligações<span>·</span>Novas</div>
   <div class="hdr-counters">
-    <div class="hdr-count"><div class="hdr-dot" style="background:#f85149"></div> Não aptos: <strong id="cntNao">0</strong></div>
-    <div class="hdr-dot" style="background:var(--border);width:1px;height:14px;border-radius:0"></div>
-    <div class="hdr-count"><div class="hdr-dot" style="background:#58a6ff"></div> Instalados: <strong id="cntInst">0</strong></div>
+    <div class="hdr-count"><div class="hdr-dot" style="background:#f85149"></div> N.aptos: <strong id="cntNao">0</strong></div>
+    <div class="hdr-count"><div class="hdr-dot" style="background:#58a6ff"></div> Inst: <strong id="cntInst">0</strong></div>
   </div>
   <div class="spacer"></div>
   <div class="hdr-actions">
-    <div class="hdr-count" style="margin-right:4px">
+    <div class="hdr-count" style="margin-right:2px">
       <div class="dot green" id="fbDot"></div>
-      <span id="fbText" style="font-family:'Space Mono',monospace;font-size:11px">Conectando...</span>
+      <span id="fbText" style="font-family:'Space Mono',monospace;font-size:10px">...</span>
     </div>
     <button class="export-btn" onclick="exportCSV()">⬇ Exportar</button>
+    <button class="toggle-sidebar-btn" onclick="toggleSidebar()" id="toggleBtn" title="Mostrar/esconder lista">☰</button>
   </div>
 </header>
 
@@ -170,13 +182,15 @@
     <div class="dot yellow"></div> Conectando...
   </div>
 
-  <!-- SIDEBAR LISTA -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
 
     <div class="sidebar-top">
       <div class="sidebar-title">TRANSFORMADORES (<span id="totalCount">0</span>)</div>
       <div class="sidebar-counters">
-        <div class="sc-item"><div class="hdr-dot" style="background:var(--gray);width:7px;height:7px;border-radius:50%"></div> Pendentes: <strong id="cntPend">0</strong></div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="hdr-dot" style="background:var(--gray);width:7px;height:7px;border-radius:50%"></div>
+          Pendentes: <strong id="cntPend">0</strong>
+        </div>
       </div>
     </div>
 
@@ -192,11 +206,22 @@
       <div class="ftab" onclick="setFilter('pendente')">Pendente</div>
     </div>
 
-    <div class="total-bar" id="totalBar">—</div>
+    <div class="mass-bar" id="massBar">
+      <div class="mass-bar-title" id="massBarTitle">0 selecionados — toque para selecionar</div>
+      <div class="mass-bar-btns">
+        <button class="mass-btn mass-btn-green" onclick="massSetStatus('apto')">✓ Marcar Apto</button>
+        <button class="mass-btn mass-btn-blue" onclick="massSetStatus('instalado')">⚡ Instalado</button>
+        <button class="mass-btn mass-btn-cancel" onclick="cancelMass()">✕</button>
+      </div>
+    </div>
+
+    <div class="total-bar" id="totalBar">
+      <span>—</span>
+      <span class="mass-toggle" onclick="toggleMassMode()">☑ Selecionar</span>
+    </div>
 
     <div class="trafo-list" id="trafoList"></div>
 
-    <!-- painel de ação -->
     <div class="action-panel" id="actionPanel" style="display:none">
       <div class="action-panel-inner">
         <div class="ap-header">
@@ -206,13 +231,12 @@
         <textarea class="ap-obs" id="obsField" placeholder="Observação..." disabled></textarea>
         <div class="ap-btns">
           <button class="ap-btn ap-btn-green" onclick="setStatus('apto')" id="btnApto" disabled>✓ Apto</button>
-          <button class="ap-btn ap-btn-red" onclick="setStatus('nao_apto')" id="btnNao" disabled>✕ Não Apto</button>
-          <button class="ap-btn ap-btn-blue" onclick="setStatus('instalado')" id="btnInst" disabled>⚡ Instalado</button>
+          <button class="ap-btn ap-btn-red" onclick="setStatus('nao_apto')" id="btnNao" disabled>✕ N.Apto</button>
+          <button class="ap-btn ap-btn-blue" onclick="setStatus('instalado')" id="btnInst" disabled>⚡ Inst.</button>
         </div>
       </div>
     </div>
 
-    <!-- barra de progresso -->
     <div class="progress-bar-wrap">
       <div class="pb-label">
         <span>Progresso de instalação</span>
@@ -224,7 +248,6 @@
   </div>
 </div>
 
-<!-- IMPORT MODAL -->
 <div class="modal-backdrop" id="importModal">
   <div class="modal">
     <h2>📂 Importar Trafos (CSV)</h2>
@@ -243,9 +266,6 @@ T002,-5.1000,-42.8200</pre>
 <div class="notif" id="notif"></div>
 
 <script>
-// ========================
-// FIREBASE CONFIG
-// ========================
 const firebaseConfig = {
   apiKey: "AIzaSyCxoNBUTu_WOYZTXI-48CitzH3uRko9LGs",
   authDomain: "acompanhamanutencoesln.firebaseapp.com",
@@ -258,18 +278,69 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ========================
-// STATE
-// ========================
 let trafos = {};
 let selectedId = null;
 let markers = {};
 let myLocMarker = null;
 let currentFilter = '';
+let massMode = false;
+let massSelected = new Set();
+let sidebarVisible = true;
 
-// ========================
-// MAP SETUP
-// ========================
+// TOGGLE SIDEBAR
+function toggleSidebar() {
+  sidebarVisible = !sidebarVisible;
+  document.getElementById('sidebar').classList.toggle('hidden', !sidebarVisible);
+  setTimeout(() => map.invalidateSize(), 280);
+}
+
+// MODO MASSA
+function toggleMassMode() {
+  massMode = !massMode;
+  massSelected.clear();
+  if (massMode) {
+    document.getElementById('massBar').classList.add('visible');
+    closePanel();
+  } else {
+    document.getElementById('massBar').classList.remove('visible');
+  }
+  renderList();
+}
+
+function cancelMass() {
+  massMode = false;
+  massSelected.clear();
+  document.getElementById('massBar').classList.remove('visible');
+  renderList();
+}
+
+function toggleMassSelect(id, e) {
+  e.stopPropagation();
+  if (massSelected.has(id)) massSelected.delete(id);
+  else massSelected.add(id);
+  document.getElementById('massBarTitle').textContent = massSelected.size + ' selecionado(s) — escolha a ação';
+  renderList();
+}
+
+function massSetStatus(status) {
+  if (massSelected.size === 0) { notify('⚠ Nenhum trafo selecionado', '#f85149'); return; }
+  const updates = {};
+  massSelected.forEach(id => {
+    updates['trafos/' + id + '/status'] = status;
+    updates['trafos/' + id + '/updatedAt'] = Date.now();
+  });
+  const count = massSelected.size;
+  db.ref().update(updates)
+    .then(() => {
+      const labels = { apto:'Aptos ✓', instalado:'Instalados ⚡' };
+      const colors = { apto:'#39d353', instalado:'#58a6ff' };
+      notify(`✓ ${count} trafo(s) → ${labels[status]}`, colors[status]);
+      cancelMass();
+    })
+    .catch(err => notify('Erro: ' + err.message, '#f85149'));
+}
+
+// MAP
 const map = L.map('map').setView([-5.09, -42.81], 14);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap'
@@ -285,25 +356,21 @@ function makeIcon(status, selected) {
       <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="${c}" opacity="0.9"/>
       <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="none" stroke="#fff" stroke-width="1.5"/>
     </svg>`,
-    iconSize: [s+4, s+4],
-    iconAnchor: [(s+4)/2, (s+4)/2],
+    iconSize: [s+4, s+4], iconAnchor: [(s+4)/2, (s+4)/2],
   });
 }
 
 function addOrUpdateMarker(t) {
-  const isSel = t.id === selectedId;
   if (markers[t.id]) {
-    markers[t.id].setIcon(makeIcon(t.status, isSel));
+    markers[t.id].setIcon(makeIcon(t.status, t.id === selectedId));
   } else {
-    const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, isSel) }).addTo(map);
-    m.on('click', () => selectTrafo(t.id));
+    const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, false) }).addTo(map);
+    m.on('click', () => { if (!massMode) selectTrafo(t.id); });
     markers[t.id] = m;
   }
 }
 
-// ========================
 // FIREBASE
-// ========================
 db.ref('trafos').on('value', snapshot => {
   trafos = snapshot.val() || {};
   Object.values(trafos).forEach(t => addOrUpdateMarker(t));
@@ -321,10 +388,9 @@ db.ref('.info/connected').on('value', snap => {
     : '<div class="dot red"></div> Offline';
 });
 
-// ========================
 // SELECIONAR TRAFO
-// ========================
 function selectTrafo(id) {
+  if (massMode) return;
   const prev = selectedId;
   selectedId = id;
   const t = trafos[id];
@@ -354,9 +420,6 @@ function closePanel() {
   renderList();
 }
 
-// ========================
-// SALVAR STATUS
-// ========================
 function setStatus(status) {
   if (!selectedId) { notify('⚠ Selecione um trafo', '#f85149'); return; }
   const obs = document.getElementById('obsField').value;
@@ -369,9 +432,6 @@ function setStatus(status) {
     .catch(err => notify('Erro: ' + err.message, '#f85149'));
 }
 
-// ========================
-// CONTADORES DO CABEÇALHO
-// ========================
 function updateHeaderCounters() {
   const all = Object.values(trafos);
   const nao = all.filter(t => t.status === 'nao_apto').length;
@@ -386,9 +446,6 @@ function updateHeaderCounters() {
   document.getElementById('progFill').style.width = pct + '%';
 }
 
-// ========================
-// FILTROS
-// ========================
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.ftab').forEach(el => {
@@ -398,9 +455,6 @@ function setFilter(f) {
   renderList();
 }
 
-// ========================
-// LISTA
-// ========================
 function renderList() {
   const q = (document.getElementById('searchInput').value || '').toLowerCase();
   const all = Object.values(trafos);
@@ -409,7 +463,11 @@ function renderList() {
     (!currentFilter || t.status === currentFilter)
   );
 
-  document.getElementById('totalBar').textContent = `TRANSFORMADORES (${filtered.length})  •  Pendentes: ${filtered.filter(t=>!t.status||t.status==='pendente').length}`;
+  const pendCount = filtered.filter(t => !t.status || t.status === 'pendente').length;
+  document.getElementById('totalBar').innerHTML = `
+    <span style="font-size:10px">TRAFOS (${filtered.length}) • Pend: ${pendCount}</span>
+    <span class="mass-toggle" onclick="toggleMassMode()">${massMode ? '✕ Sair seleção' : '☑ Selecionar'}</span>
+  `;
 
   const dc = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff', pendente:'#6e7681' };
   const lb = { apto:'Apto', nao_apto:'Não Apto', instalado:'Instalado', pendente:'Pendente' };
@@ -420,13 +478,18 @@ function renderList() {
         <div style="font-size:32px">📭</div>
         <div>${all.length===0 ? 'Importe um CSV para começar.' : 'Nenhum trafo encontrado.'}</div>
       </div>`;
+    updateHeaderCounters();
     return;
   }
 
   document.getElementById('trafoList').innerHTML = filtered.map(t => {
     const st = t.status || 'pendente';
+    const isMassChecked = massSelected.has(t.id);
     return `
-    <div class="trafo-row ${t.id===selectedId?'selected':''}" onclick="selectTrafo('${t.id}')">
+    <div class="trafo-row ${t.id===selectedId?'selected':''} ${isMassChecked?'checked':''}"
+      onclick="${massMode ? `toggleMassSelect('${t.id}', event)` : `selectTrafo('${t.id}')`}">
+      <div class="row-check ${massMode?'visible':''} ${isMassChecked?'ticked':''}"
+        onclick="toggleMassSelect('${t.id}', event)"></div>
       <div class="row-dot" style="background:${dc[st]}"></div>
       <div class="row-info">
         <div class="row-id">${t.id}</div>
@@ -439,9 +502,6 @@ function renderList() {
   updateHeaderCounters();
 }
 
-// ========================
-// GPS
-// ========================
 function startGPS() {
   if (!navigator.geolocation) return;
   navigator.geolocation.watchPosition(pos => {
@@ -460,9 +520,6 @@ function startGPS() {
   }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
 }
 
-// ========================
-// CSV IMPORT
-// ========================
 function openImport() { document.getElementById('importModal').classList.add('open'); }
 function closeImport() { document.getElementById('importModal').classList.remove('open'); }
 
@@ -492,9 +549,6 @@ function processCSV() {
   reader.readAsText(file);
 }
 
-// ========================
-// EXPORT CSV
-// ========================
 function exportCSV() {
   const all = Object.values(trafos);
   if (!all.length) { notify('Nenhum trafo para exportar', '#ffa657'); return; }
@@ -509,9 +563,6 @@ function exportCSV() {
   notify('✓ CSV exportado', '#39d353');
 }
 
-// ========================
-// NOTIF
-// ========================
 function notify(msg, color) {
   const el = document.getElementById('notif');
   el.textContent = msg;
@@ -520,9 +571,6 @@ function notify(msg, color) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ========================
-// INIT
-// ========================
 startGPS();
 </script>
 </body>

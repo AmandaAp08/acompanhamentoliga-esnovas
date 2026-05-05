@@ -6,7 +6,8 @@
 <title>Trafos – Ligações</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
@@ -23,473 +24,113 @@
     --red-glow: #f85149;
     --blue: #1f6feb;
     --blue-glow: #58a6ff;
-    --yellow: #e3b341;
     --yellow-glow: #ffa657;
     --gray: #6e7681;
     --radius: 8px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* ---- HEADER ---- */
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 16px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-    z-index: 1000;
-  }
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.5px;
-  }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; height: 52px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; z-index: 1000; }
+  .logo { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; letter-spacing: -0.5px; }
   .logo span { color: var(--blue-glow); }
   header .spacer { flex: 1; }
-  .gps-badge {
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-family: 'Space Mono', monospace;
-  }
-  .gps-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--gray);
-  }
-  .gps-dot.active { background: var(--green-glow); animation: pulse 2s infinite; }
-  @keyframes pulse {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
 
-  /* ---- TABS ---- */
-  .tabs {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    flex-shrink: 0;
-  }
-  .tab {
-    padding: 10px 20px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    user-select: none;
-  }
+  .status-bar { display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); display: flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); flex-shrink: 0; }
+  .dot.green { background: var(--green-glow); animation: pulse 2s infinite; }
+  .dot.yellow { background: var(--yellow-glow); animation: pulse 1s infinite; }
+  .dot.red { background: var(--red-glow); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-shrink: 0; }
+  .tab { padding: 10px 20px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; user-select: none; }
   .tab:hover { color: var(--text); }
-  .tab.active {
-    color: var(--blue-glow);
-    border-bottom-color: var(--blue-glow);
-  }
+  .tab.active { color: var(--blue-glow); border-bottom-color: var(--blue-glow); }
 
-  /* ---- MAIN LAYOUT ---- */
-  .main {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* ---- VIEWS ---- */
+  .main { flex: 1; display: flex; overflow: hidden; position: relative; }
   .view { display: none; flex: 1; overflow: hidden; }
   .view.active { display: flex; }
 
-  /* ---- MAP VIEW ---- */
-  #mapView { position: relative; }
   #map { flex: 1; }
+  .import-btn { position: absolute; top: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: background 0.2s; }
+  .import-btn:hover { background: var(--surface2); }
 
-  /* sidebar */
-  .sidebar {
-    width: 300px;
-    flex-shrink: 0;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .sidebar-header {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-    font-family: 'Space Mono', monospace;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  .sync-indicator { position: absolute; bottom: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
-  .trafo-info {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .trafo-id {
-    font-family: 'Space Mono', monospace;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-  .trafo-coords {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: 'Space Mono', monospace;
-  }
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 8px;
-  }
+  .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: 'Space Mono', monospace; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .trafo-info { padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .trafo-id { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .trafo-coords { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .trafo-updated { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px; }
   .status-badge.apto { background: #0d2a1a; color: var(--green-glow); border: 1px solid var(--green); }
   .status-badge.nao_apto { background: #2a0d0d; color: var(--red-glow); border: 1px solid var(--red); }
   .status-badge.instalado { background: #0d1a2a; color: var(--blue-glow); border: 1px solid var(--blue); }
   .status-badge.pendente { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 
-  .action-area {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .obs-area {
-    padding: 16px;
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .obs-label {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-family: 'Space Mono', monospace;
-  }
-  textarea {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    padding: 8px 10px;
-    resize: vertical;
-    min-height: 80px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
+  .obs-area { padding: 16px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .obs-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; font-family: 'Space Mono', monospace; }
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 8px 10px; resize: vertical; min-height: 80px; outline: none; transition: border-color 0.2s; }
   textarea:focus { border-color: var(--blue); }
+  textarea:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .btn {
-    padding: 9px 14px;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: opacity 0.15s, transform 0.1s;
-    width: 100%;
-  }
+  .action-area { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .btn { padding: 9px 14px; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.15s, transform 0.1s; width: 100%; }
   .btn:hover { opacity: 0.85; }
   .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn-green { background: var(--green); color: #fff; }
   .btn-red { background: var(--red); color: #fff; }
   .btn-blue { background: var(--blue); color: #fff; }
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-  .btn-outline:hover { color: var(--text); border-color: var(--text-muted); }
 
-  .legend {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .legend-title {
-    font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-family: 'Space Mono', monospace;
-    margin-bottom: 4px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-  .legend-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .dot-green { background: var(--green-glow); }
-  .dot-red { background: var(--red-glow); }
-  .dot-blue { background: var(--blue-glow); }
-  .dot-yellow { background: var(--yellow-glow); }
-  .dot-gray { background: #aaa; border: 2px solid #555; }
+  .legend { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .legend-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; font-family: 'Space Mono', monospace; margin-bottom: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-  /* import button float */
-  .import-btn {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 800;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 14px;
-    border-radius: var(--radius);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    transition: background 0.2s;
-  }
-  .import-btn:hover { background: var(--surface2); }
-
-  /* ---- LIST VIEW ---- */
-  #listView {
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .list-toolbar {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-shrink: 0;
-    background: var(--surface);
-  }
-  .search-input {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    padding: 7px 12px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    outline: none;
-  }
+  #listView { flex-direction: column; overflow: hidden; }
+  .list-toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-shrink: 0; background: var(--surface); }
+  .search-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 7px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
   .search-input:focus { border-color: var(--blue); }
-  .filter-select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    padding: 7px 10px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .list-stats {
-    padding: 10px 16px;
-    display: flex;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  .stat {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-  }
+  .filter-select { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 7px 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; cursor: pointer; }
+  .list-stats { padding: 10px 16px; display: flex; gap: 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; }
   .stat-num { font-weight: 700; font-family: 'Space Mono', monospace; }
   .stat-label { color: var(--text-muted); }
-
-  .trafo-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-  }
-  .trafo-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: background 0.15s;
-    border: 1px solid transparent;
-    margin-bottom: 4px;
-  }
+  .trafo-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .trafo-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 4px; }
   .trafo-row:hover { background: var(--surface2); border-color: var(--border); }
   .trafo-row.selected { background: var(--surface2); border-color: var(--blue); }
-
-  .row-dot {
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  .row-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .row-info { flex: 1; min-width: 0; }
-  .row-id {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .row-obs {
-    font-size: 11px;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 2px;
-  }
-  .row-coords {
-    font-size: 10px;
-    color: var(--text-muted);
-    font-family: 'Space Mono', monospace;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  .row-action {
-    font-size: 11px;
-    color: var(--blue-glow);
-    cursor: pointer;
-    flex-shrink: 0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: rgba(31,111,235,0.1);
-    border: 1px solid rgba(31,111,235,0.2);
-    transition: background 0.2s;
-  }
+  .row-id { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+  .row-obs { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .row-coords { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; text-align: right; flex-shrink: 0; }
+  .row-action { font-size: 11px; color: var(--blue-glow); cursor: pointer; flex-shrink: 0; padding: 4px 8px; border-radius: 4px; background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.2); transition: background 0.2s; }
   .row-action:hover { background: rgba(31,111,235,0.2); }
 
-  /* ---- MODAL ---- */
-  .modal-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 9000;
-    align-items: center;
-    justify-content: center;
-  }
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; align-items: center; justify-content: center; }
   .modal-backdrop.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    width: 420px;
-    max-width: 95vw;
-  }
-  .modal h2 {
-    font-family: 'Space Mono', monospace;
-    font-size: 16px;
-    margin-bottom: 12px;
-  }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 440px; max-width: 95vw; }
+  .modal h2 { font-family: 'Space Mono', monospace; font-size: 16px; margin-bottom: 12px; }
   .modal p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
-  .modal pre {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    color: var(--green-glow);
-    margin-bottom: 16px;
-    white-space: pre-wrap;
-  }
+  .modal pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--green-glow); margin-bottom: 16px; white-space: pre-wrap; }
   .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .modal-btns button {
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface2);
-    color: var(--text);
-    cursor: pointer;
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .modal-btns .btn-primary {
-    background: var(--blue);
-    border-color: var(--blue);
-    color: #fff;
-    font-weight: 600;
-  }
+  .modal-btns button { padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif; }
+  .modal-btns .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
 
-  /* notification */
-  .notif {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    font-size: 13px;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-  }
+  .notif { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; z-index: 9999; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transform: translateY(80px); opacity: 0; transition: all 0.3s; max-width: 300px; }
   .notif.show { transform: translateY(0); opacity: 1; }
 
-  /* map customizations */
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); font-size: 14px; }
+  .empty-icon { font-size: 40px; }
+
   .leaflet-container { background: #0d1117 !important; }
-  .custom-marker {
-    border: none !important;
-    background: none !important;
-  }
+  .custom-marker { border: none !important; background: none !important; }
 </style>
 </head>
 <body>
@@ -497,9 +138,9 @@
 <header>
   <div class="logo">Trafos<span>·</span>Ligações</div>
   <div class="spacer"></div>
-  <div class="gps-badge">
-    <div class="gps-dot" id="gpsDot"></div>
-    <span id="gpsText">GPS</span>
+  <div class="status-bar">
+    <div class="badge"><div class="dot yellow" id="fbDot"></div><span id="fbText">Conectando...</span></div>
+    <div class="badge"><div class="dot" id="gpsDot"></div><span id="gpsText">GPS</span></div>
   </div>
 </header>
 
@@ -513,44 +154,35 @@
   <!-- MAP VIEW -->
   <div class="view active" id="mapView">
     <div id="map"></div>
-
-    <button class="import-btn" onclick="openImport()">
-      📂 Importar CSV
-    </button>
+    <button class="import-btn" onclick="openImport()">📂 Importar CSV</button>
+    <div class="sync-indicator" id="syncIndicator">
+      <div class="dot yellow"></div> Conectando...
+    </div>
 
     <div class="sidebar">
       <div class="sidebar-header">Painel de Controle</div>
-
-      <div class="trafo-info" id="sideInfo">
+      <div class="trafo-info">
         <div class="trafo-id" id="infoId">—</div>
         <div class="trafo-coords" id="infoCoords">Selecione um trafo no mapa</div>
+        <div class="trafo-updated" id="infoUpdated"></div>
         <span class="status-badge pendente" id="infoBadge">Pendente</span>
       </div>
-
       <div class="obs-area">
         <div class="obs-label">Observação</div>
         <textarea id="obsField" placeholder="Descreva o motivo do status..." disabled></textarea>
       </div>
-
       <div class="action-area">
-        <button class="btn btn-green" onclick="setStatus('apto')" id="btnApto" disabled>
-          ✓ Apto
-        </button>
-        <button class="btn btn-red" onclick="setStatus('nao_apto')" id="btnNao" disabled>
-          ✕ Não Apto
-        </button>
-        <button class="btn btn-blue" onclick="setStatus('instalado')" id="btnInst" disabled>
-          ⚡ Instalado
-        </button>
+        <button class="btn btn-green" onclick="setStatus('apto')" id="btnApto" disabled>✓ Apto</button>
+        <button class="btn btn-red" onclick="setStatus('nao_apto')" id="btnNao" disabled>✕ Não Apto</button>
+        <button class="btn btn-blue" onclick="setStatus('instalado')" id="btnInst" disabled>⚡ Instalado</button>
       </div>
-
       <div class="legend">
         <div class="legend-title">Legenda</div>
-        <div class="legend-item"><div class="legend-dot dot-green"></div> Apto</div>
-        <div class="legend-item"><div class="legend-dot dot-red"></div> Não Apto</div>
-        <div class="legend-item"><div class="legend-dot dot-blue"></div> Instalado</div>
-        <div class="legend-item"><div class="legend-dot dot-yellow"></div> Selecionado</div>
-        <div class="legend-item"><div class="legend-dot dot-gray"></div> Sua localização</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#39d353"></div> Apto</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> Não Apto</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Instalado</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffa657"></div> Selecionado</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa;border:2px solid #555"></div> Sua localização</div>
       </div>
     </div>
   </div>
@@ -576,17 +208,12 @@
 <div class="modal-backdrop" id="importModal">
   <div class="modal">
     <h2>📂 Importar Trafos (CSV)</h2>
-    <p>Faça upload de um arquivo <strong>.csv</strong> com os campos abaixo. A primeira linha deve ser o cabeçalho.</p>
+    <p>Faça upload de um arquivo <strong>.csv</strong> com os campos abaixo. A primeira linha deve ser o cabeçalho. Trafos já existentes não serão duplicados.</p>
     <pre>id,lat,lng
 T001,-5.0900,-42.8100
 T002,-5.1000,-42.8200
 T003,-5.0850,-42.8050</pre>
-    <input type="file" id="csvFile" accept=".csv" style="
-      display: block; width: 100%; padding: 10px;
-      background: var(--surface2); border: 1px dashed var(--border);
-      border-radius: var(--radius); color: var(--text);
-      font-size: 13px; margin-bottom: 16px; cursor: pointer;
-    ">
+    <input type="file" id="csvFile" accept=".csv" style="display:block;width:100%;padding:10px;background:var(--surface2);border:1px dashed var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;margin-bottom:16px;cursor:pointer;">
     <div class="modal-btns">
       <button onclick="closeImport()">Cancelar</button>
       <button class="btn-primary" onclick="processCSV()">Importar</button>
@@ -594,192 +221,181 @@ T003,-5.0850,-42.8050</pre>
   </div>
 </div>
 
-<!-- NOTIFICATION -->
 <div class="notif" id="notif"></div>
 
 <script>
-// ==============================
+// ========================
+// FIREBASE CONFIG
+// ========================
+const firebaseConfig = {
+  apiKey: "AIzaSyCxoNBUTu_WOYZTXI-48CitzH3uRko9LGs",
+  authDomain: "acompanhamanutencoesln.firebaseapp.com",
+  databaseURL: "https://acompanhamanutencoesln-default-rtdb.firebaseio.com",
+  projectId: "acompanhamanutencoesln",
+  storageBucket: "acompanhamanutencoesln.firebasestorage.app",
+  messagingSenderId: "888565328678",
+  appId: "1:888565328678:web:a66522e7c378406bf3efe7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ========================
 // STATE
-// ==============================
-let trafos = [];
+// ========================
+let trafos = {};
 let selectedId = null;
 let markers = {};
 let myLocMarker = null;
-let watchId = null;
 
-// ==============================
-// STORAGE (localStorage)
-// ==============================
-function saveData() {
-  localStorage.setItem('trafos_data', JSON.stringify(trafos));
-}
-function loadData() {
-  const raw = localStorage.getItem('trafos_data');
-  if (raw) {
-    trafos = JSON.parse(raw);
-  } else {
-    // dados de exemplo
-    trafos = [
-      { id: 'T001', lat: -5.09, lng: -42.81, status: 'pendente', obs: '' },
-      { id: 'T002', lat: -5.10, lng: -42.82, status: 'apto', obs: 'Sem problemas' },
-      { id: 'T003', lat: -5.085, lng: -42.805, status: 'nao_apto', obs: 'Cabo danificado' },
-      { id: 'T004', lat: -5.095, lng: -42.825, status: 'instalado', obs: 'Instalado em 01/05' },
-    ];
-    saveData();
-  }
-}
-
-// ==============================
+// ========================
 // MAP SETUP
-// ==============================
+// ========================
 const map = L.map('map').setView([-5.09, -42.81], 14);
-
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap'
 }).addTo(map);
 
 function makeIcon(status, selected) {
-  const colors = {
-    apto: '#39d353',
-    nao_apto: '#f85149',
-    instalado: '#58a6ff',
-    pendente: '#6e7681',
-  };
+  const colors = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff', pendente:'#6e7681' };
   const c = selected ? '#ffa657' : (colors[status] || colors.pendente);
-  const size = selected ? 18 : 14;
+  const s = selected ? 18 : 14;
   return L.divIcon({
     className: 'custom-marker',
-    html: `<svg width="${size+4}" height="${size+4}" viewBox="0 0 ${size+4} ${size+4}">
-      <circle cx="${(size+4)/2}" cy="${(size+4)/2}" r="${size/2}" fill="${c}" opacity="0.85"/>
-      <circle cx="${(size+4)/2}" cy="${(size+4)/2}" r="${size/2}" fill="none" stroke="#fff" stroke-width="1.5"/>
+    html: `<svg width="${s+4}" height="${s+4}" viewBox="0 0 ${s+4} ${s+4}">
+      <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="${c}" opacity="0.9"/>
+      <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="none" stroke="#fff" stroke-width="1.5"/>
     </svg>`,
-    iconSize: [size+4, size+4],
-    iconAnchor: [(size+4)/2, (size+4)/2],
+    iconSize: [s+4, s+4],
+    iconAnchor: [(s+4)/2, (s+4)/2],
   });
 }
 
-function renderMarkers() {
-  trafos.forEach(t => {
-    const isSelected = t.id === selectedId;
-    if (markers[t.id]) {
-      markers[t.id].setIcon(makeIcon(t.status, isSelected));
-      return;
-    }
-    const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, isSelected) }).addTo(map);
+function addOrUpdateMarker(t) {
+  const isSel = t.id === selectedId;
+  if (markers[t.id]) {
+    markers[t.id].setIcon(makeIcon(t.status, isSel));
+  } else {
+    const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, isSel) }).addTo(map);
     m.on('click', () => selectTrafo(t.id));
     markers[t.id] = m;
-  });
+  }
 }
 
-function addNewMarkers() {
-  trafos.forEach(t => {
-    if (!markers[t.id]) {
-      const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, false) }).addTo(map);
-      m.on('click', () => selectTrafo(t.id));
-      markers[t.id] = m;
-    }
-  });
-}
+// ========================
+// FIREBASE — escuta tempo real
+// ========================
+db.ref('trafos').on('value', snapshot => {
+  trafos = snapshot.val() || {};
+  Object.values(trafos).forEach(t => addOrUpdateMarker(t));
+  if (selectedId && trafos[selectedId]) refreshPanel(trafos[selectedId]);
+  renderList();
+});
 
-// ==============================
-// SELECT TRAFO
-// ==============================
+db.ref('.info/connected').on('value', snap => {
+  const ok = snap.val();
+  document.getElementById('fbDot').className = ok ? 'dot green' : 'dot red';
+  document.getElementById('fbText').textContent = ok ? 'Firebase ativo' : 'Sem conexão';
+  document.getElementById('syncIndicator').innerHTML = ok
+    ? '<div class="dot green"></div> Sincronizado'
+    : '<div class="dot red"></div> Offline — dados podem não salvar';
+});
+
+// ========================
+// SELECIONAR TRAFO
+// ========================
 function selectTrafo(id) {
   const prev = selectedId;
   selectedId = id;
-  const t = trafos.find(x => x.id === id);
+  const t = trafos[id];
   if (!t) return;
 
-  // update old marker
-  if (prev && markers[prev]) {
-    const old = trafos.find(x => x.id === prev);
-    if (old) markers[prev].setIcon(makeIcon(old.status, false));
+  if (prev && markers[prev] && trafos[prev]) {
+    markers[prev].setIcon(makeIcon(trafos[prev].status, false));
   }
-  // update new marker
   markers[id].setIcon(makeIcon(t.status, true));
   map.panTo([t.lat, t.lng]);
+  refreshPanel(t);
 
-  // update sidebar
+  if (document.getElementById('listView').classList.contains('active')) {
+    switchTab('map');
+  }
+  renderList();
+}
+
+function refreshPanel(t) {
   document.getElementById('infoId').textContent = t.id;
-  document.getElementById('infoCoords').textContent = `${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}`;
+  document.getElementById('infoCoords').textContent =
+    `${parseFloat(t.lat).toFixed(5)}, ${parseFloat(t.lng).toFixed(5)}`;
+  document.getElementById('infoUpdated').textContent = t.updatedAt
+    ? 'Atualizado: ' + new Date(t.updatedAt).toLocaleString('pt-BR')
+    : '';
   updateBadge(t.status);
-  document.getElementById('obsField').value = t.obs || '';
+  if (document.activeElement !== document.getElementById('obsField')) {
+    document.getElementById('obsField').value = t.obs || '';
+  }
   document.getElementById('obsField').disabled = false;
   ['btnApto','btnNao','btnInst'].forEach(b => document.getElementById(b).disabled = false);
-
-  // switch to map tab if on list
-  switchTab('map');
-
-  renderList();
 }
 
 function updateBadge(status) {
-  const labels = { apto: 'Apto', nao_apto: 'Não Apto', instalado: 'Instalado', pendente: 'Pendente' };
+  const labels = { apto:'Apto', nao_apto:'Não Apto', instalado:'Instalado', pendente:'Pendente' };
   const el = document.getElementById('infoBadge');
-  el.className = 'status-badge ' + status;
+  el.className = 'status-badge ' + (status || 'pendente');
   el.textContent = labels[status] || 'Pendente';
 }
 
-// ==============================
-// SET STATUS
-// ==============================
+// ========================
+// SALVAR STATUS NO FIREBASE
+// ========================
 function setStatus(status) {
   if (!selectedId) { notify('⚠ Selecione um trafo primeiro', '#f85149'); return; }
-  const t = trafos.find(x => x.id === selectedId);
-  if (!t) return;
-  t.status = status;
-  t.obs = document.getElementById('obsField').value;
-  t.updatedAt = new Date().toISOString();
-  saveData();
-  markers[selectedId].setIcon(makeIcon(status, true));
-  updateBadge(status);
-  renderList();
-  const labels = { apto: 'Apto ✓', nao_apto: 'Não Apto ✕', instalado: 'Instalado ⚡' };
-  const colors = { apto: '#39d353', nao_apto: '#f85149', instalado: '#58a6ff' };
-  notify(`${t.id} marcado como ${labels[status]}`, colors[status]);
+  const obs = document.getElementById('obsField').value;
+  db.ref('trafos/' + selectedId).update({
+    status,
+    obs,
+    updatedAt: Date.now()
+  }).then(() => {
+    const labels = { apto:'Apto ✓', nao_apto:'Não Apto ✕', instalado:'Instalado ⚡' };
+    const colors = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff' };
+    notify(`${selectedId} salvo como ${labels[status]}`, colors[status]);
+  }).catch(err => notify('Erro ao salvar: ' + err.message, '#f85149'));
 }
 
-// ==============================
-// GPS / LOCATION
-// ==============================
+// ========================
+// GPS — localização em tempo real
+// ========================
 function startGPS() {
   if (!navigator.geolocation) return;
-  watchId = navigator.geolocation.watchPosition(pos => {
+  navigator.geolocation.watchPosition(pos => {
     const { latitude: lat, longitude: lng } = pos.coords;
-    document.getElementById('gpsDot').classList.add('active');
+    document.getElementById('gpsDot').className = 'dot green';
     document.getElementById('gpsText').textContent = 'GPS ativo';
-
     const myIcon = L.divIcon({
       className: 'custom-marker',
-      html: `<svg width="20" height="20" viewBox="0 0 20 20">
-        <circle cx="10" cy="10" r="8" fill="#aaa" opacity="0.9"/>
-        <circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="2"/>
-        <circle cx="10" cy="10" r="3" fill="#fff"/>
+      html: `<svg width="22" height="22" viewBox="0 0 22 22">
+        <circle cx="11" cy="11" r="9" fill="#888" opacity="0.9"/>
+        <circle cx="11" cy="11" r="9" fill="none" stroke="#fff" stroke-width="2"/>
+        <circle cx="11" cy="11" r="3.5" fill="#fff"/>
       </svg>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
+      iconSize: [22,22], iconAnchor: [11,11],
     });
-
     if (myLocMarker) {
       myLocMarker.setLatLng([lat, lng]);
     } else {
       myLocMarker = L.marker([lat, lng], { icon: myIcon, zIndexOffset: 1000 }).addTo(map);
       myLocMarker.bindTooltip('Você está aqui', { permanent: false });
     }
-  }, err => {
-    console.warn('GPS error:', err);
+  }, () => {
+    document.getElementById('gpsText').textContent = 'GPS negado';
   }, { enableHighAccuracy: true, maximumAge: 5000 });
 }
 
-// ==============================
+// ========================
 // CSV IMPORT
-// ==============================
-function openImport() {
-  document.getElementById('importModal').classList.add('open');
-}
-function closeImport() {
-  document.getElementById('importModal').classList.remove('open');
-}
+// ========================
+function openImport() { document.getElementById('importModal').classList.add('open'); }
+function closeImport() { document.getElementById('importModal').classList.remove('open'); }
+
 function processCSV() {
   const file = document.getElementById('csvFile').files[0];
   if (!file) { notify('⚠ Selecione um arquivo CSV', '#f85149'); return; }
@@ -787,107 +403,98 @@ function processCSV() {
   reader.onload = e => {
     const lines = e.target.result.trim().split('\n');
     const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const idIdx = header.indexOf('id');
-    const latIdx = header.indexOf('lat');
-    const lngIdx = header.indexOf('lng');
-    if (idIdx === -1 || latIdx === -1 || lngIdx === -1) {
-      notify('⚠ CSV precisa das colunas: id, lat, lng', '#f85149');
-      return;
-    }
+    const iI = header.indexOf('id'), lI = header.indexOf('lat'), gI = header.indexOf('lng');
+    if (iI===-1 || lI===-1 || gI===-1) { notify('⚠ CSV precisa de: id, lat, lng', '#f85149'); return; }
     let added = 0;
+    const updates = {};
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
-      const id = cols[idIdx];
-      const lat = parseFloat(cols[latIdx]);
-      const lng = parseFloat(cols[lngIdx]);
-      if (!id || isNaN(lat) || isNaN(lng)) continue;
-      if (trafos.find(t => t.id === id)) continue; // já existe
-      trafos.push({ id, lat, lng, status: 'pendente', obs: '' });
+      const c = lines[i].split(',').map(x => x.trim());
+      const id = c[iI], lat = parseFloat(c[lI]), lng = parseFloat(c[gI]);
+      if (!id || isNaN(lat) || isNaN(lng) || trafos[id]) continue;
+      updates['trafos/' + id] = { id, lat, lng, status: 'pendente', obs: '', updatedAt: Date.now() };
       added++;
     }
-    saveData();
-    addNewMarkers();
-    if (trafos.length > 0) {
-      const coords = trafos.map(t => [t.lat, t.lng]);
-      map.fitBounds(coords, { padding: [40, 40] });
-    }
-    renderList();
-    closeImport();
-    notify(`✓ ${added} trafo(s) importado(s)`, '#39d353');
+    if (added === 0) { notify('Nenhum trafo novo no arquivo', '#ffa657'); return; }
+    db.ref().update(updates)
+      .then(() => { closeImport(); notify(`✓ ${added} trafo(s) importado(s)`, '#39d353'); })
+      .catch(err => notify('Erro: ' + err.message, '#f85149'));
   };
   reader.readAsText(file);
 }
 
-// ==============================
-// LIST VIEW
-// ==============================
+// ========================
+// LISTA DE TRAFOS
+// ========================
 function renderList() {
   const q = (document.getElementById('searchInput').value || '').toLowerCase();
-  const filterStatus = document.getElementById('filterStatus').value;
-
-  const filtered = trafos.filter(t => {
-    const matchQ = t.id.toLowerCase().includes(q) || (t.obs||'').toLowerCase().includes(q);
-    const matchS = !filterStatus || t.status === filterStatus;
-    return matchQ && matchS;
-  });
-
-  const counts = { apto: 0, nao_apto: 0, instalado: 0, pendente: 0 };
-  trafos.forEach(t => { counts[t.status] = (counts[t.status]||0) + 1; });
+  const fs = document.getElementById('filterStatus').value;
+  const all = Object.values(trafos);
+  const filtered = all.filter(t =>
+    (t.id.toLowerCase().includes(q) || (t.obs||'').toLowerCase().includes(q)) &&
+    (!fs || t.status === fs)
+  );
+  const counts = { apto:0, nao_apto:0, instalado:0, pendente:0 };
+  all.forEach(t => { counts[t.status] = (counts[t.status]||0)+1; });
 
   document.getElementById('listStats').innerHTML = `
     <div class="stat"><span class="stat-num" style="color:#39d353">${counts.apto}</span><span class="stat-label">Aptos</span></div>
     <div class="stat"><span class="stat-num" style="color:#f85149">${counts.nao_apto}</span><span class="stat-label">Não Aptos</span></div>
     <div class="stat"><span class="stat-num" style="color:#58a6ff">${counts.instalado}</span><span class="stat-label">Instalados</span></div>
     <div class="stat"><span class="stat-num" style="color:#6e7681">${counts.pendente}</span><span class="stat-label">Pendentes</span></div>
-    <div class="stat"><span class="stat-num">${trafos.length}</span><span class="stat-label">Total</span></div>
+    <div class="stat"><span class="stat-num">${all.length}</span><span class="stat-label">Total</span></div>
   `;
 
-  const dotColors = { apto: '#39d353', nao_apto: '#f85149', instalado: '#58a6ff', pendente: '#6e7681' };
-  const labels = { apto: 'Apto', nao_apto: 'Não Apto', instalado: 'Instalado', pendente: 'Pendente' };
+  const dc = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff', pendente:'#6e7681' };
+  const lb = { apto:'Apto', nao_apto:'Não Apto', instalado:'Instalado', pendente:'Pendente' };
 
+  if (filtered.length === 0) {
+    document.getElementById('trafoList').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div>${all.length===0 ? 'Importe um CSV para começar.' : 'Nenhum trafo encontrado.'}</div>
+      </div>`;
+    return;
+  }
   document.getElementById('trafoList').innerHTML = filtered.map(t => `
-    <div class="trafo-row ${t.id === selectedId ? 'selected' : ''}" onclick="selectTrafo('${t.id}')">
-      <div class="row-dot" style="background:${dotColors[t.status]||'#6e7681'}"></div>
+    <div class="trafo-row ${t.id===selectedId?'selected':''}" onclick="selectTrafo('${t.id}')">
+      <div class="row-dot" style="background:${dc[t.status]||'#6e7681'}"></div>
       <div class="row-info">
         <div class="row-id">${t.id}</div>
-        <div class="row-obs">${t.obs || labels[t.status]}</div>
+        <div class="row-obs">${t.obs || lb[t.status]}</div>
       </div>
-      <div class="row-coords">${t.lat.toFixed(4)}<br>${t.lng.toFixed(4)}</div>
-      <div class="row-action" onclick="event.stopPropagation(); selectTrafo('${t.id}')">Ver no mapa</div>
+      <div class="row-coords">${parseFloat(t.lat).toFixed(4)}<br>${parseFloat(t.lng).toFixed(4)}</div>
+      <div class="row-action" onclick="event.stopPropagation();selectTrafo('${t.id}')">Ver mapa</div>
     </div>
   `).join('');
 }
 
-// ==============================
+// ========================
 // TABS
-// ==============================
+// ========================
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((el, i) => {
-    el.classList.toggle('active', (i === 0 && tab === 'map') || (i === 1 && tab === 'list'));
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', (i===0&&tab==='map')||(i===1&&tab==='list'));
   });
-  document.getElementById('mapView').classList.toggle('active', tab === 'map');
-  document.getElementById('listView').classList.toggle('active', tab === 'list');
-  if (tab === 'list') renderList();
-  if (tab === 'map') setTimeout(() => map.invalidateSize(), 100);
+  document.getElementById('mapView').classList.toggle('active', tab==='map');
+  document.getElementById('listView').classList.toggle('active', tab==='list');
+  if (tab==='list') renderList();
+  if (tab==='map') setTimeout(() => map.invalidateSize(), 100);
 }
 
-// ==============================
-// NOTIFICATION
-// ==============================
+// ========================
+// NOTIFICAÇÃO
+// ========================
 function notify(msg, color) {
   const el = document.getElementById('notif');
   el.textContent = msg;
   el.style.borderColor = color || 'var(--border)';
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
+  setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-// ==============================
+// ========================
 // INIT
-// ==============================
-loadData();
-renderMarkers();
-renderList();
+// ========================
 startGPS();
 </script>
 </body>

@@ -52,7 +52,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
-    // Suas chaves configuradas corretamente
     const firebaseConfig = {
       apiKey: "AIzaSyCxoNBUTu_WOYZTXI-48CitzH3uRko9LGs",
       authDomain: "acompanhamanutencoesln.firebaseapp.com",
@@ -74,7 +73,6 @@
 
         document.getElementById('login-screen').style.display = 'none';
 
-        // Mapa no modo escuro (Dark Mode)
         map = L.map('map').setView([-15.78, -47.92], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '© OpenStreetMap'
@@ -85,7 +83,6 @@
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 
-                // Envia para o Firebase
                 db.ref('usuarios/' + nome).set({
                     nome: nome,
                     lat: lat,
@@ -99,7 +96,6 @@
             }, { enableHighAccuracy: true });
         }
 
-        // Escuta atualizações de todos os usuários em tempo real
         db.ref('usuarios').on('value', snapshot => {
             const data = snapshot.val();
             for (let id in data) {
@@ -112,8 +108,8 @@
                     const neonIcon = L.divIcon({
                         className: 'custom-icon',
                         html: `<div class="neon-marker"></div><div class="label-nome">${user.nome}</div>`,
-                        iconSize:,
-                        iconAnchor:
+                        iconSize: [18, 40],
+                        iconAnchor: [9, 9]
                     });
                     markers[id] = L.marker(latlng, {icon: neonIcon}).addTo(map);
                 }

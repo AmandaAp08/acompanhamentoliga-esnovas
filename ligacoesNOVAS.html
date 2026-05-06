@@ -2,103 +2,123 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa Multi-Usuário Neon</title>
+    <title>Mapa de Equipe Neon</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; font-family: sans-serif; background: #1a1a1a; }
-        #map { height: 100vh; width: 100vw; }
-
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0b0d17; color: white; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
         /* Tela de Login */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #000 100%);
+            z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        input { padding: 15px; border-radius: 8px; border: none; width: 250px; margin-bottom: 10px; }
-        button { padding: 15px 30px; cursor: pointer; background: #fff; border: none; font-weight: bold; border-radius: 8px; }
+        h1 { font-size: 24px; margin-bottom: 25px; letter-spacing: 3px; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        input { padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3); width: 280px; margin-bottom: 15px; background: rgba(255,255,255,0.1); color: white; text-align: center; font-size: 16px; outline: none; }
+        input:focus { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        button { padding: 16px 50px; cursor: pointer; background: #fff; border: none; font-weight: bold; border-radius: 12px; box-shadow: 0 0 20px rgba(255,255,255,0.3); transition: 0.3s; font-size: 14px; letter-spacing: 1px; }
+        button:hover { transform: scale(1.05); background: #f8f8f8; }
 
-        /* Marcador Branco Neon */
+        /* Estilo do Marcador Branco Neon */
         .neon-marker {
-            width: 15px; height: 15px;
+            width: 18px; height: 18px;
             background-color: #fff;
             border-radius: 50%;
-            border: 2px solid #fff;
-            box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
-            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 35px #fff;
+            border: 2px solid #000;
         }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
         .label-nome {
-            color: white; font-weight: bold; text-shadow: 0 0 5px black;
-            background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px;
+            background: rgba(255, 255, 255, 0.95); color: #000;
+            padding: 4px 12px; border-radius: 6px; font-weight: 800;
+            font-size: 13px; white-space: nowrap; margin-top: 10px;
+            border: 1px solid #000; text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <h1 style="color: white;">Quem está acessando?</h1>
+    <h1>QUEM ESTÁ LOGANDO?</h1>
     <input type="text" id="userName" placeholder="Digite seu nome...">
-    <button onclick="iniciarMapa()">Entrar no Mapa</button>
+    <button onclick="iniciarApp()">ENTRAR NO MAPA</button>
 </div>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    let map;
-    let userMarker;
-    let nomeUsuario = "";
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    function iniciarMapa() {
-        nomeUsuario = document.getElementById('userName').value;
-        if (!nomeUsuario) return alert("Por favor, digite seu nome!");
+<script>
+    // Suas chaves configuradas corretamente
+    const firebaseConfig = {
+      apiKey: "AIzaSyCxoNBUTu_WOYZTXI-48CitzH3uRko9LGs",
+      authDomain: "acompanhamanutencoesln.firebaseapp.com",
+      databaseURL: "https://acompanhamanutencoesln-default-rtdb.firebaseio.com",
+      projectId: "acompanhamanutencoesln",
+      storageBucket: "acompanhamanutencoesln.firebasestorage.app",
+      messagingSenderId: "888565328678",
+      appId: "1:888565328678:web:492898d6d8156313f3efe7",
+      measurementId: "G-BGC8ECFH0R"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let map, markers = {};
+
+    function iniciarApp() {
+        const nome = document.getElementById('userName').value.trim();
+        if (!nome) return alert("Por favor, digite seu nome!");
 
         document.getElementById('login-screen').style.display = 'none';
 
-        // Inicializa o mapa focado no Brasil (exemplo)
+        // Mapa no modo escuro (Dark Mode)
         map = L.map('map').setView([-15.78, -47.92], 4);
-
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        capturarLocalizacao();
-    }
-
-    function capturarLocalizacao() {
         if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition((position) => {
-                const { latitude, longitude } = position.coords;
-
-                // Aqui você enviaria os dados para o seu servidor/banco de dados
-                // Para visualização local imediata:
-                atualizarMarcador(latitude, longitude, nomeUsuario);
+            navigator.geolocation.watchPosition(pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
                 
-                map.setView([latitude, longitude], 13);
-            });
+                // Envia para o Firebase
+                db.ref('usuarios/' + nome).set({
+                    nome: nome,
+                    lat: lat,
+                    lng: lng,
+                    timestamp: Date.now()
+                });
+                
+                map.setView([lat, lng], 16);
+            }, err => {
+                alert("Erro ao obter GPS. Certifique-se de que a localização está ativa!");
+            }, { enableHighAccuracy: true });
         }
-    }
 
-    function atualizarMarcador(lat, lng, nome) {
-        // Ícone customizado Neon
-        const neonIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: `<div class="neon-marker"></div><div class="label-nome">${nome}</div>`,
-            iconSize:,
-            iconAnchor:
+        // Escuta atualizações de todos os usuários em tempo real
+        db.ref('usuarios').on('value', snapshot => {
+            const data = snapshot.val();
+            for (let id in data) {
+                const user = data[id];
+                const latlng = [user.lat, user.lng];
+
+                if (markers[id]) {
+                    markers[id].setLatLng(latlng);
+                } else {
+                    const neonIcon = L.divIcon({
+                        className: 'custom-icon',
+                        html: `<div class="neon-marker"></div><div class="label-nome">${user.nome}</div>`,
+                        iconSize:,
+                        iconAnchor:
+                    });
+                    markers[id] = L.marker(latlng, {icon: neonIcon}).addTo(map);
+                }
+            }
         });
-
-        if (userMarker) {
-            userMarker.setLatLng([lat, lng]);
-        } else {
-            userMarker = L.marker([lat, lng], {icon: neonIcon}).addTo(map);
-        }
     }
 </script>
 </body>

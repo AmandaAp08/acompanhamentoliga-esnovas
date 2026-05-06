@@ -1,577 +1,105 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trafos – Ligações</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Mapa Multi-Usuário Neon</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #1a1a1a; }
+        #map { height: 100vh; width: 100vw; }
 
-<style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #1c2230;
-    --border: #30363d;
-    --text: #e6edf3;
-    --text-muted: #8b949e;
-    --green: #2ea043;
-    --green-glow: #39d353;
-    --red: #da3633;
-    --red-glow: #f85149;
-    --blue: #1f6feb;
-    --blue-glow: #58a6ff;
-    --yellow-glow: #ffa657;
-    --gray: #6e7681;
-    --radius: 8px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        /* Tela de Login */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        input { padding: 15px; border-radius: 8px; border: none; width: 250px; margin-bottom: 10px; }
+        button { padding: 15px 30px; cursor: pointer; background: #fff; border: none; font-weight: bold; border-radius: 8px; }
 
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 10px; height: 48px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; z-index: 1000; }
-  .logo { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: -0.5px; white-space: nowrap; }
-  .logo span { color: var(--blue-glow); }
-  header .spacer { flex: 1; }
+        /* Marcador Branco Neon */
+        .neon-marker {
+            width: 15px; height: 15px;
+            background-color: #fff;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
+            animation: pulse 1.5s infinite;
+        }
 
-  .hdr-counters { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-  .hdr-count { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-family: 'Space Mono', monospace; white-space: nowrap; }
-  .hdr-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
-  .hdr-actions { display: flex; align-items: center; gap: 6px; }
-  .export-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: var(--radius); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
-  .export-btn:hover { background: var(--border); }
-
-  .toggle-sidebar-btn { background: var(--blue); border: none; color: #fff; width: 32px; height: 32px; border-radius: var(--radius); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .toggle-sidebar-btn:hover { opacity: 0.85; }
-
-  .main { flex: 1; display: flex; overflow: hidden; position: relative; }
-
-  #map { flex: 1; min-width: 0; }
-  .import-btn { position: absolute; top: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: background 0.2s; }
-  .import-btn:hover { background: var(--surface2); }
-  .sync-indicator { position: absolute; bottom: 10px; left: 10px; z-index: 800; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; font-size: 10px; font-family: 'Space Mono', monospace; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray); flex-shrink: 0; }
-  .dot.green { background: var(--green-glow); animation: pulse 2s infinite; }
-  .dot.yellow { background: var(--yellow-glow); animation: pulse 1s infinite; }
-  .dot.red { background: var(--red-glow); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; transition: width 0.25s ease, opacity 0.25s ease; }
-  .sidebar.hidden { width: 0; opacity: 0; pointer-events: none; }
-
-  .sidebar-top { padding: 10px 12px 8px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-  .sidebar-title { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; }
-  .sidebar-counters { display: flex; gap: 14px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text-muted); }
-
-  .search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .search-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 7px 11px; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
-  .search-input:focus { border-color: var(--blue); }
-  .search-input::placeholder { color: var(--text-muted); }
-
-  .filter-tabs { display: flex; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
-  .filter-tabs::-webkit-scrollbar { display: none; }
-  .ftab { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); white-space: nowrap; transition: all 0.15s; }
-  .ftab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
-  .ftab:hover:not(.active) { border-color: var(--text-muted); color: var(--text); }
-
-  .mass-bar { display: none; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; flex-direction: column; gap: 6px; }
-  .mass-bar.visible { display: flex; }
-  .mass-bar-title { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
-  .mass-bar-btns { display: flex; gap: 5px; }
-  .mass-btn { flex: 1; padding: 6px 4px; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 700; cursor: pointer; }
-  .mass-btn-green { background: var(--green); color: #fff; }
-  .mass-btn-blue { background: var(--blue); color: #fff; }
-  .mass-btn-cancel { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
-  .mass-btn:hover { opacity: 0.85; }
-
-  .total-bar { padding: 5px 12px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-muted); flex-shrink: 0; font-family: 'Space Mono', monospace; display: flex; justify-content: space-between; align-items: center; }
-  .mass-toggle { font-size: 10px; color: var(--blue-glow); cursor: pointer; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,166,255,0.3); background: rgba(88,166,255,0.08); white-space: nowrap; }
-  .mass-toggle:hover { background: rgba(88,166,255,0.15); }
-
-  .trafo-list { flex: 1; overflow-y: auto; }
-  .trafo-list::-webkit-scrollbar { width: 4px; }
-  .trafo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .trafo-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid rgba(48,54,61,0.5); cursor: pointer; transition: background 0.15s; }
-  .trafo-row:hover { background: var(--surface2); }
-  .trafo-row.selected { background: var(--surface2); border-left: 3px solid var(--blue-glow); padding-left: 9px; }
-  .trafo-row.checked { background: rgba(31,111,235,0.1); }
-
-  .row-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); background: var(--surface2); flex-shrink: 0; display: none; align-items: center; justify-content: center; cursor: pointer; }
-  .row-check.visible { display: flex; }
-  .row-check.ticked { background: var(--blue); border-color: var(--blue); }
-  .row-check.ticked::after { content: '✓'; color: #fff; font-size: 10px; line-height: 1; }
-
-  .row-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
-  .row-info { flex: 1; min-width: 0; }
-  .row-id { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
-  .row-coords { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; margin-top: 2px; }
-  .row-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
-  .rb-apto { background: #0d2a1a; color: var(--green-glow); border: 1px solid var(--green); }
-  .rb-nao_apto { background: #2a0d0d; color: var(--red-glow); border: 1px solid var(--red); }
-  .rb-instalado { background: #0d1a2a; color: var(--blue-glow); border: 1px solid var(--blue); }
-  .rb-pendente { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
-
-  .progress-bar-wrap { padding: 8px 12px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
-  .pb-label { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; margin-bottom: 4px; display: flex; justify-content: space-between; }
-  .pb-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-  .pb-fill { height: 100%; background: var(--green-glow); border-radius: 2px; transition: width 0.4s; }
-
-  .action-panel { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
-  .action-panel-inner { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
-  .ap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-  .ap-id { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; }
-  .ap-close { font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 2px 4px; }
-  .ap-close:hover { color: var(--text); }
-  .ap-obs { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 6px 8px; resize: none; min-height: 44px; outline: none; }
-  .ap-obs:focus { border-color: var(--blue); }
-  .ap-obs:disabled { opacity: 0.4; }
-  .ap-btns { display: flex; gap: 5px; }
-  .ap-btn { flex: 1; padding: 7px 4px; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 700; cursor: pointer; }
-  .ap-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .ap-btn-green { background: var(--green); color: #fff; }
-  .ap-btn-red { background: var(--red); color: #fff; }
-  .ap-btn-blue { background: var(--blue); color: #fff; }
-
-  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-muted); font-size: 13px; padding: 20px; text-align: center; }
-
-  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; align-items: center; justify-content: center; }
-  .modal-backdrop.open { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 440px; max-width: 95vw; }
-  .modal h2 { font-family: 'Space Mono', monospace; font-size: 15px; margin-bottom: 10px; }
-  .modal p { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; }
-  .modal pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--green-glow); margin-bottom: 14px; white-space: pre-wrap; }
-  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .modal-btns button { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif; }
-  .modal-btns .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
-
-  .notif { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; z-index: 9999; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transform: translateY(80px); opacity: 0; transition: all 0.3s; max-width: 280px; }
-  .notif.show { transform: translateY(0); opacity: 1; }
-
-  .leaflet-container { background: #0d1117 !important; }
-  .custom-marker { border: none !important; background: none !important; }
-</style>
+        .label-nome {
+            color: white; font-weight: bold; text-shadow: 0 0 5px black;
+            background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">Ligações<span>·</span>Novas</div>
-  <div class="hdr-counters">
-    <div class="hdr-count"><div class="hdr-dot" style="background:#f85149"></div> N.aptos: <strong id="cntNao">0</strong></div>
-    <div class="hdr-count"><div class="hdr-dot" style="background:#58a6ff"></div> Inst: <strong id="cntInst">0</strong></div>
-  </div>
-  <div class="spacer"></div>
-  <div class="hdr-actions">
-    <div class="hdr-count" style="margin-right:2px">
-      <div class="dot green" id="fbDot"></div>
-      <span id="fbText" style="font-family:'Space Mono',monospace;font-size:10px">...</span>
-    </div>
-    <button class="export-btn" onclick="exportCSV()">⬇ Exportar</button>
-    <button class="toggle-sidebar-btn" onclick="toggleSidebar()" id="toggleBtn" title="Mostrar/esconder lista">☰</button>
-  </div>
-</header>
-
-<div class="main">
-
-  <div id="map"></div>
-  <button class="import-btn" onclick="openImport()">📂 Importar CSV</button>
-  <div class="sync-indicator" id="syncIndicator">
-    <div class="dot yellow"></div> Conectando...
-  </div>
-
-  <div class="sidebar" id="sidebar">
-
-    <div class="sidebar-top">
-      <div class="sidebar-title">TRANSFORMADORES (<span id="totalCount">0</span>)</div>
-      <div class="sidebar-counters">
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="hdr-dot" style="background:var(--gray);width:7px;height:7px;border-radius:50%"></div>
-          Pendentes: <strong id="cntPend">0</strong>
-        </div>
-      </div>
-    </div>
-
-    <div class="search-wrap">
-      <input class="search-input" id="searchInput" type="text" placeholder="Buscar trafo ou endereço..." oninput="renderList()">
-    </div>
-
-    <div class="filter-tabs">
-      <div class="ftab active" onclick="setFilter('')">Todos</div>
-      <div class="ftab" onclick="setFilter('apto')">Apto</div>
-      <div class="ftab" onclick="setFilter('nao_apto')">Não apto</div>
-      <div class="ftab" onclick="setFilter('instalado')">Instalado</div>
-      <div class="ftab" onclick="setFilter('pendente')">Pendente</div>
-    </div>
-
-    <div class="mass-bar" id="massBar">
-      <div class="mass-bar-title" id="massBarTitle">0 selecionados — toque para selecionar</div>
-      <div class="mass-bar-btns">
-        <button class="mass-btn mass-btn-green" onclick="massSetStatus('apto')">✓ Marcar Apto</button>
-        <button class="mass-btn mass-btn-blue" onclick="massSetStatus('instalado')">⚡ Instalado</button>
-        <button class="mass-btn mass-btn-cancel" onclick="cancelMass()">✕</button>
-      </div>
-    </div>
-
-    <div class="total-bar" id="totalBar">
-      <span>—</span>
-      <span class="mass-toggle" onclick="toggleMassMode()">☑ Selecionar</span>
-    </div>
-
-    <div class="trafo-list" id="trafoList"></div>
-
-    <div class="action-panel" id="actionPanel" style="display:none">
-      <div class="action-panel-inner">
-        <div class="ap-header">
-          <div class="ap-id" id="apId">—</div>
-          <div class="ap-close" onclick="closePanel()">×</div>
-        </div>
-        <textarea class="ap-obs" id="obsField" placeholder="Observação..." disabled></textarea>
-        <div class="ap-btns">
-          <button class="ap-btn ap-btn-green" onclick="setStatus('apto')" id="btnApto" disabled>✓ Apto</button>
-          <button class="ap-btn ap-btn-red" onclick="setStatus('nao_apto')" id="btnNao" disabled>✕ N.Apto</button>
-          <button class="ap-btn ap-btn-blue" onclick="setStatus('instalado')" id="btnInst" disabled>⚡ Inst.</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="progress-bar-wrap">
-      <div class="pb-label">
-        <span>Progresso de instalação</span>
-        <span id="progPct">0%</span>
-      </div>
-      <div class="pb-track"><div class="pb-fill" id="progFill" style="width:0%"></div></div>
-    </div>
-
-  </div>
+<div id="login-screen">
+    <h1 style="color: white;">Quem está acessando?</h1>
+    <input type="text" id="userName" placeholder="Digite seu nome...">
+    <button onclick="iniciarMapa()">Entrar no Mapa</button>
 </div>
 
-<div class="modal-backdrop" id="importModal">
-  <div class="modal">
-    <h2>📂 Importar Trafos (CSV)</h2>
-    <p>Faça upload de um arquivo <strong>.csv</strong> com os campos abaixo. A primeira linha deve ser o cabeçalho.</p>
-    <pre>id,lat,lng
-T001,-5.0900,-42.8100
-T002,-5.1000,-42.8200</pre>
-    <input type="file" id="csvFile" accept=".csv" style="display:block;width:100%;padding:10px;background:var(--surface2);border:1px dashed var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;margin-bottom:16px;cursor:pointer;">
-    <div class="modal-btns">
-      <button onclick="closeImport()">Cancelar</button>
-      <button class="btn-primary" onclick="processCSV()">Importar</button>
-    </div>
-  </div>
-</div>
+<div id="map"></div>
 
-<div class="notif" id="notif"></div>
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCxoNBUTu_WOYZTXI-48CitzH3uRko9LGs",
-  authDomain: "acompanhamanutencoesln.firebaseapp.com",
-  databaseURL: "https://acompanhamanutencoesln-default-rtdb.firebaseio.com",
-  projectId: "acompanhamanutencoesln",
-  storageBucket: "acompanhamanutencoesln.firebasestorage.app",
-  messagingSenderId: "888565328678",
-  appId: "1:888565328678:web:a66522e7c378406bf3efe7"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    let map;
+    let userMarker;
+    let nomeUsuario = "";
 
-let trafos = {};
-let selectedId = null;
-let markers = {};
-let myLocMarker = null;
-let currentFilter = '';
-let massMode = false;
-let massSelected = new Set();
-let sidebarVisible = true;
+    function iniciarMapa() {
+        nomeUsuario = document.getElementById('userName').value;
+        if (!nomeUsuario) return alert("Por favor, digite seu nome!");
 
-// TOGGLE SIDEBAR
-function toggleSidebar() {
-  sidebarVisible = !sidebarVisible;
-  document.getElementById('sidebar').classList.toggle('hidden', !sidebarVisible);
-  setTimeout(() => map.invalidateSize(), 280);
-}
+        document.getElementById('login-screen').style.display = 'none';
 
-// MODO MASSA
-function toggleMassMode() {
-  massMode = !massMode;
-  massSelected.clear();
-  if (massMode) {
-    document.getElementById('massBar').classList.add('visible');
-    closePanel();
-  } else {
-    document.getElementById('massBar').classList.remove('visible');
-  }
-  renderList();
-}
+        // Inicializa o mapa focado no Brasil (exemplo)
+        map = L.map('map').setView([-15.78, -47.92], 4);
 
-function cancelMass() {
-  massMode = false;
-  massSelected.clear();
-  document.getElementById('massBar').classList.remove('visible');
-  renderList();
-}
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-function toggleMassSelect(id, e) {
-  e.stopPropagation();
-  if (massSelected.has(id)) massSelected.delete(id);
-  else massSelected.add(id);
-  document.getElementById('massBarTitle').textContent = massSelected.size + ' selecionado(s) — escolha a ação';
-  renderList();
-}
-
-function massSetStatus(status) {
-  if (massSelected.size === 0) { notify('⚠ Nenhum trafo selecionado', '#f85149'); return; }
-  const updates = {};
-  massSelected.forEach(id => {
-    updates['trafos/' + id + '/status'] = status;
-    updates['trafos/' + id + '/updatedAt'] = Date.now();
-  });
-  const count = massSelected.size;
-  db.ref().update(updates)
-    .then(() => {
-      const labels = { apto:'Aptos ✓', instalado:'Instalados ⚡' };
-      const colors = { apto:'#39d353', instalado:'#58a6ff' };
-      notify(`✓ ${count} trafo(s) → ${labels[status]}`, colors[status]);
-      cancelMass();
-    })
-    .catch(err => notify('Erro: ' + err.message, '#f85149'));
-}
-
-// MAP
-const map = L.map('map').setView([-5.09, -42.81], 14);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap'
-}).addTo(map);
-
-function makeIcon(status, selected) {
-  const colors = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff', pendente:'#6e7681' };
-  const c = selected ? '#ffa657' : (colors[status] || colors.pendente);
-  const s = selected ? 18 : 14;
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<svg width="${s+4}" height="${s+4}" viewBox="0 0 ${s+4} ${s+4}">
-      <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="${c}" opacity="0.9"/>
-      <circle cx="${(s+4)/2}" cy="${(s+4)/2}" r="${s/2}" fill="none" stroke="#fff" stroke-width="1.5"/>
-    </svg>`,
-    iconSize: [s+4, s+4], iconAnchor: [(s+4)/2, (s+4)/2],
-  });
-}
-
-function addOrUpdateMarker(t) {
-  if (markers[t.id]) {
-    markers[t.id].setIcon(makeIcon(t.status, t.id === selectedId));
-  } else {
-    const m = L.marker([t.lat, t.lng], { icon: makeIcon(t.status, false) }).addTo(map);
-    m.on('click', () => { if (!massMode) selectTrafo(t.id); });
-    markers[t.id] = m;
-  }
-}
-
-// FIREBASE
-db.ref('trafos').on('value', snapshot => {
-  trafos = snapshot.val() || {};
-  Object.values(trafos).forEach(t => addOrUpdateMarker(t));
-  if (selectedId && trafos[selectedId]) refreshPanel(trafos[selectedId]);
-  renderList();
-  updateHeaderCounters();
-});
-
-db.ref('.info/connected').on('value', snap => {
-  const ok = snap.val();
-  document.getElementById('fbDot').className = ok ? 'dot green' : 'dot red';
-  document.getElementById('fbText').textContent = ok ? 'Sincronizado' : 'Offline';
-  document.getElementById('syncIndicator').innerHTML = ok
-    ? '<div class="dot green"></div> Sincronizado'
-    : '<div class="dot red"></div> Offline';
-});
-
-// SELECIONAR TRAFO
-function selectTrafo(id) {
-  if (massMode) return;
-  const prev = selectedId;
-  selectedId = id;
-  const t = trafos[id];
-  if (!t) return;
-  if (prev && markers[prev] && trafos[prev]) markers[prev].setIcon(makeIcon(trafos[prev].status, false));
-  markers[id].setIcon(makeIcon(t.status, true));
-  map.panTo([t.lat, t.lng]);
-  refreshPanel(t);
-  renderList();
-}
-
-function refreshPanel(t) {
-  document.getElementById('actionPanel').style.display = 'block';
-  document.getElementById('apId').textContent = t.id + '  ' + parseFloat(t.lat).toFixed(4) + ', ' + parseFloat(t.lng).toFixed(4);
-  const obsEl = document.getElementById('obsField');
-  if (document.activeElement !== obsEl) obsEl.value = t.obs || '';
-  obsEl.disabled = false;
-  ['btnApto','btnNao','btnInst'].forEach(b => document.getElementById(b).disabled = false);
-}
-
-function closePanel() {
-  if (selectedId && markers[selectedId] && trafos[selectedId]) {
-    markers[selectedId].setIcon(makeIcon(trafos[selectedId].status, false));
-  }
-  selectedId = null;
-  document.getElementById('actionPanel').style.display = 'none';
-  renderList();
-}
-
-function setStatus(status) {
-  if (!selectedId) { notify('⚠ Selecione um trafo', '#f85149'); return; }
-  const obs = document.getElementById('obsField').value;
-  db.ref('trafos/' + selectedId).update({ status, obs, updatedAt: Date.now() })
-    .then(() => {
-      const labels = { apto:'Apto ✓', nao_apto:'Não Apto ✕', instalado:'Instalado ⚡' };
-      const colors = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff' };
-      notify(`${selectedId} → ${labels[status]}`, colors[status]);
-    })
-    .catch(err => notify('Erro: ' + err.message, '#f85149'));
-}
-
-function updateHeaderCounters() {
-  const all = Object.values(trafos);
-  const nao = all.filter(t => t.status === 'nao_apto').length;
-  const inst = all.filter(t => t.status === 'instalado').length;
-  const pend = all.filter(t => !t.status || t.status === 'pendente').length;
-  document.getElementById('cntNao').textContent = nao;
-  document.getElementById('cntInst').textContent = inst;
-  document.getElementById('cntPend').textContent = pend;
-  document.getElementById('totalCount').textContent = all.length;
-  const pct = all.length ? Math.round((inst / all.length) * 100) : 0;
-  document.getElementById('progPct').textContent = pct + '%';
-  document.getElementById('progFill').style.width = pct + '%';
-}
-
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.ftab').forEach(el => {
-    const labels = { '':'Todos', apto:'Apto', nao_apto:'Não apto', instalado:'Instalado', pendente:'Pendente' };
-    el.classList.toggle('active', el.textContent.trim() === (labels[f] || 'Todos'));
-  });
-  renderList();
-}
-
-function renderList() {
-  const q = (document.getElementById('searchInput').value || '').toLowerCase();
-  const all = Object.values(trafos);
-  const filtered = all.filter(t =>
-    (t.id.toLowerCase().includes(q) || (t.obs||'').toLowerCase().includes(q)) &&
-    (!currentFilter || t.status === currentFilter)
-  );
-
-  const pendCount = filtered.filter(t => !t.status || t.status === 'pendente').length;
-  document.getElementById('totalBar').innerHTML = `
-    <span style="font-size:10px">TRAFOS (${filtered.length}) • Pend: ${pendCount}</span>
-    <span class="mass-toggle" onclick="toggleMassMode()">${massMode ? '✕ Sair seleção' : '☑ Selecionar'}</span>
-  `;
-
-  const dc = { apto:'#39d353', nao_apto:'#f85149', instalado:'#58a6ff', pendente:'#6e7681' };
-  const lb = { apto:'Apto', nao_apto:'Não Apto', instalado:'Instalado', pendente:'Pendente' };
-
-  if (filtered.length === 0) {
-    document.getElementById('trafoList').innerHTML = `
-      <div class="empty-state">
-        <div style="font-size:32px">📭</div>
-        <div>${all.length===0 ? 'Importe um CSV para começar.' : 'Nenhum trafo encontrado.'}</div>
-      </div>`;
-    updateHeaderCounters();
-    return;
-  }
-
-  document.getElementById('trafoList').innerHTML = filtered.map(t => {
-    const st = t.status || 'pendente';
-    const isMassChecked = massSelected.has(t.id);
-    return `
-    <div class="trafo-row ${t.id===selectedId?'selected':''} ${isMassChecked?'checked':''}"
-      onclick="${massMode ? `toggleMassSelect('${t.id}', event)` : `selectTrafo('${t.id}')`}">
-      <div class="row-check ${massMode?'visible':''} ${isMassChecked?'ticked':''}"
-        onclick="toggleMassSelect('${t.id}', event)"></div>
-      <div class="row-dot" style="background:${dc[st]}"></div>
-      <div class="row-info">
-        <div class="row-id">${t.id}</div>
-        <div class="row-coords">${parseFloat(t.lat).toFixed(4)}, ${parseFloat(t.lng).toFixed(4)}</div>
-      </div>
-      <div class="row-badge rb-${st}">${lb[st]}</div>
-    </div>`;
-  }).join('');
-
-  updateHeaderCounters();
-}
-
-function startGPS() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(pos => {
-    const { latitude: lat, longitude: lng } = pos.coords;
-    const myIcon = L.divIcon({
-      className: 'custom-marker',
-      html: `<svg width="22" height="22" viewBox="0 0 22 22">
-        <circle cx="11" cy="11" r="9" fill="#888" opacity="0.9"/>
-        <circle cx="11" cy="11" r="9" fill="none" stroke="#fff" stroke-width="2"/>
-        <circle cx="11" cy="11" r="3.5" fill="#fff"/>
-      </svg>`,
-      iconSize: [22,22], iconAnchor: [11,11],
-    });
-    if (myLocMarker) { myLocMarker.setLatLng([lat, lng]); }
-    else { myLocMarker = L.marker([lat, lng], { icon: myIcon, zIndexOffset: 1000 }).addTo(map); }
-  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
-}
-
-function openImport() { document.getElementById('importModal').classList.add('open'); }
-function closeImport() { document.getElementById('importModal').classList.remove('open'); }
-
-function processCSV() {
-  const file = document.getElementById('csvFile').files[0];
-  if (!file) { notify('⚠ Selecione um CSV', '#f85149'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    const lines = e.target.result.trim().split('\n');
-    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const iI = header.indexOf('id'), lI = header.indexOf('lat'), gI = header.indexOf('lng');
-    if (iI===-1||lI===-1||gI===-1) { notify('⚠ CSV precisa de: id, lat, lng', '#f85149'); return; }
-    let added = 0;
-    const updates = {};
-    for (let i = 1; i < lines.length; i++) {
-      const c = lines[i].split(',').map(x => x.trim());
-      const id = c[iI], lat = parseFloat(c[lI]), lng = parseFloat(c[gI]);
-      if (!id || isNaN(lat) || isNaN(lng) || trafos[id]) continue;
-      updates['trafos/' + id] = { id, lat, lng, status: 'pendente', obs: '', updatedAt: Date.now() };
-      added++;
+        capturarLocalizacao();
     }
-    if (added === 0) { notify('Nenhum trafo novo', '#ffa657'); return; }
-    db.ref().update(updates)
-      .then(() => { closeImport(); notify(`✓ ${added} trafo(s) importado(s)`, '#39d353'); })
-      .catch(err => notify('Erro: ' + err.message, '#f85149'));
-  };
-  reader.readAsText(file);
-}
 
-function exportCSV() {
-  const all = Object.values(trafos);
-  if (!all.length) { notify('Nenhum trafo para exportar', '#ffa657'); return; }
-  const rows = [['id','lat','lng','status','obs','updatedAt']];
-  all.forEach(t => rows.push([t.id, t.lat, t.lng, t.status||'pendente', (t.obs||'').replace(/,/g,''), t.updatedAt ? new Date(t.updatedAt).toLocaleString('pt-BR') : '']));
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'trafos_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
-  notify('✓ CSV exportado', '#39d353');
-}
+    function capturarLocalizacao() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((position) => {
+                const { latitude, longitude } = position.coords;
 
-function notify(msg, color) {
-  const el = document.getElementById('notif');
-  el.textContent = msg;
-  el.style.borderColor = color || 'var(--border)';
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
-}
+                // Aqui você enviaria os dados para o seu servidor/banco de dados
+                // Para visualização local imediata:
+                atualizarMarcador(latitude, longitude, nomeUsuario);
+                
+                map.setView([latitude, longitude], 13);
+            });
+        }
+    }
 
-startGPS();
+    function atualizarMarcador(lat, lng, nome) {
+        // Ícone customizado Neon
+        const neonIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div class="neon-marker"></div><div class="label-nome">${nome}</div>`,
+            iconSize:,
+            iconAnchor:
+        });
+
+        if (userMarker) {
+            userMarker.setLatLng([lat, lng]);
+        } else {
+            userMarker = L.marker([lat, lng], {icon: neonIcon}).addTo(map);
+        }
+    }
 </script>
 </body>
 </html>
